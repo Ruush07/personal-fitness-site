@@ -1,122 +1,145 @@
 "use client";
 
-import { useState } from "react";
-import { supabase } from "../../lib/supabase"; // Importing the connection we made earlier!
-import { Dumbbell } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; // Next.js router for redirecting
+import { supabase } from "../lib/supabase"; // Your database bridge
+import { Activity, Flame, Plus, Utensils, LogOut } from "lucide-react";
+import WeightChart from "../components/WeightChart";
 
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+export default function Dashboard() {
+  const router = useRouter();
+  
+  // New state to hold the logged-in user's data
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Function to handle creating a new account
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
+  // Existing tracker state
+  const [calorieTarget, setCalorieTarget] = useState(2500); 
+  const [caloriesConsumed, setCaloriesConsumed] = useState(0);
+  const [mealInput, setMealInput] = useState("");
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+  const caloriesRemaining = calorieTarget - caloriesConsumed;
+  const isOverLimit = caloriesRemaining < 0;
 
-    if (error) {
-      setMessage(error.message);
-    } else {
-      setMessage("Check your email for the confirmation link!");
-    }
-    setLoading(false);
+  // THIS IS THE SECURITY CHECK: It runs the moment the page loads
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // If no session exists, kick them to the login page!
+        router.push("/login");
+      } else {
+        // If they are logged in, save their email to show on the screen
+        setUserEmail(session.user.email ?? "Athlete");
+        setIsLoading(false);
+      }
+    };
+
+    checkUser();
+  }, [router]);
+
+  // Function to securely log out
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
   };
 
-  // Function to handle logging in
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogMeal = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage("");
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setMessage(error.message);
-    } else {
-      setMessage("Logged in successfully! Redirecting...");
-      // Later, we will tell the app to go back to the Dashboard here
-    }
-    setLoading(false);
+    if (!mealInput) return;
+    setCaloriesConsumed((prev) => prev + parseInt(mealInput));
+    setMealInput(""); 
   };
+
+  // Show a blank dark screen while checking security to prevent flashing
+  if (isLoading) return <div className="min-h-screen bg-neutral-950"></div>;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-950 p-6">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6 md:p-12">
       
-      {/* The Login Card */}
-      <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-xl">
+      <header className="mb-10 flex justify-between items-start">
+        <div>
+          {/* Dynamic Greeting! */}
+          <h1 className="text-3xl font-bold tracking-tight">Welcome back,</h1>
+          <h2 className="text-xl text-blue-500 font-semibold mt-1">{userEmail}</h2>
+          <p className="text-neutral-400 mt-2">Here is your daily summary.</p>
+        </div>
         
-        {/* Logo & Header */}
-        <div className="flex flex-col items-center justify-center mb-8">
-          <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-500 mb-4">
-            <Dumbbell size={32} />
+        {/* Logout Button */}
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-red-500 transition-colors p-2 bg-neutral-900 rounded-lg border border-neutral-800"
+        >
+          <LogOut size={16} />
+          Sign Out
+        </button>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Calorie Tracker Card */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+              <Utensils size={24} />
+            </div>
+            <h2 className="text-xl font-semibold">Nutrition</h2>
           </div>
-          <h1 className="text-2xl font-bold text-white">Athlete Portal</h1>
-          <p className="text-neutral-400 mt-2 text-center">Sign in to track your progress and access your routines.</p>
+
+          <div className="flex flex-col items-center justify-center py-6">
+            <span className={`text-5xl font-bold tracking-tighter ${isOverLimit ? 'text-red-500' : 'text-neutral-100'}`}>
+              {Math.abs(caloriesRemaining)}
+            </span>
+            <span className="text-neutral-400 mt-2 font-medium">
+              {isOverLimit ? "calories over limit" : "calories remaining"}
+            </span>
+          </div>
+
+          <form onSubmit={handleLogMeal} className="flex gap-2 mt-4">
+            <input
+              type="number"
+              placeholder="Add calories..."
+              value={mealInput}
+              onChange={(e) => setMealInput(e.target.value)}
+              className="flex-1 bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button 
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl transition-colors"
+            >
+              <Plus size={24} />
+            </button>
+          </form>
         </div>
 
-        {/* The Form */}
-        <form className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-neutral-400 mb-1">Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              placeholder="you@email.com"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-neutral-400 mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              placeholder="••••••••"
-              required
-            />
-          </div>
-
-          {/* Feedback Message (Errors or Success) */}
-          {message && (
-            <div className={`p-3 rounded-lg text-sm ${message.includes("error") ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"}`}>
-              {message}
+        {/* Streak Card */}
+        <div className="space-y-6">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-sm flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-300">Workout Streak</h2>
+              <p className="text-3xl font-bold mt-1">4 Days</p>
             </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={handleLogin}
-              disabled={loading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition-colors disabled:opacity-50"
-            >
-              {loading ? "Loading..." : "Sign In"}
-            </button>
-            <button
-              onClick={handleSignUp}
-              disabled={loading}
-              className="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white py-3 rounded-xl font-medium transition-colors disabled:opacity-50"
-            >
-              Sign Up
-            </button>
+            <div className="p-4 bg-orange-500/10 rounded-full text-orange-500">
+              <Flame size={32} />
+            </div>
           </div>
-        </form>
 
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-sm flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-300">Daily Steps</h2>
+              <p className="text-3xl font-bold mt-1">8,432</p>
+            </div>
+            <div className="p-4 bg-green-500/10 rounded-full text-green-500">
+              <Activity size={32} />
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div className="mt-6">
+        <WeightChart />
+      </div>
+
     </div>
   );
 }
