@@ -1,65 +1,99 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { Activity, Flame, Plus, Utensils } from "lucide-react";
+// ⬇️ HERE IS YOUR IMPORT! ⬇️
+import WeightChart from "../components/WeightChart";
+
+export default function Dashboard() {
+  const [calorieTarget, setCalorieTarget] = useState(2500); 
+  const [caloriesConsumed, setCaloriesConsumed] = useState(0);
+  const [mealInput, setMealInput] = useState("");
+
+  const caloriesRemaining = calorieTarget - caloriesConsumed;
+  const isOverLimit = caloriesRemaining < 0;
+
+  const handleLogMeal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mealInput) return;
+    setCaloriesConsumed((prev) => prev + parseInt(mealInput));
+    setMealInput(""); 
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6 md:p-12">
+      <header className="mb-10">
+        <h1 className="text-3xl font-bold tracking-tight">Welcome back, Athlete</h1>
+        <p className="text-neutral-400 mt-1">Here is your daily summary.</p>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Calorie Tracker Card */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+              <Utensils size={24} />
+            </div>
+            <h2 className="text-xl font-semibold">Nutrition</h2>
+          </div>
+
+          <div className="flex flex-col items-center justify-center py-6">
+            <span className={`text-5xl font-bold tracking-tighter ${isOverLimit ? 'text-red-500' : 'text-neutral-100'}`}>
+              {Math.abs(caloriesRemaining)}
+            </span>
+            <span className="text-neutral-400 mt-2 font-medium">
+              {isOverLimit ? "calories over limit" : "calories remaining"}
+            </span>
+          </div>
+
+          <form onSubmit={handleLogMeal} className="flex gap-2 mt-4">
+            <input
+              type="number"
+              placeholder="Add calories..."
+              value={mealInput}
+              onChange={(e) => setMealInput(e.target.value)}
+              className="flex-1 bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <button 
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl transition-colors"
+            >
+              <Plus size={24} />
+            </button>
+          </form>
         </div>
-      </main>
+
+        {/* Streak & Activity Card */}
+        <div className="space-y-6">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-sm flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-300">Workout Streak</h2>
+              <p className="text-3xl font-bold mt-1">4 Days</p>
+            </div>
+            <div className="p-4 bg-orange-500/10 rounded-full text-orange-500">
+              <Flame size={32} />
+            </div>
+          </div>
+
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-sm flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-300">Daily Steps</h2>
+              <p className="text-3xl font-bold mt-1">8,432</p>
+            </div>
+            <div className="p-4 bg-green-500/10 rounded-full text-green-500">
+              <Activity size={32} />
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* ⬇️ HERE IS YOUR CHART RENDERING! ⬇️ */}
+      <div className="mt-6">
+        <WeightChart />
+      </div>
+
     </div>
   );
 }
