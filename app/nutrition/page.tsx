@@ -16,20 +16,43 @@ export default function NutritionPage() {
     
     setIsAnalyzing(true);
     
-    // 🚧 PLACEHOLDER: Here we will call our Next.js API route to talk to the AI
-    // For right now, we will just fake a 2-second loading delay to test the UI
-    setTimeout(() => {
-      setResult({
-        meal: "150g Daal & 200g Paneer",
-        calories: 680,
-        protein: 45,
-        carbs: 30,
-        fats: 42
+    try {
+      // 1. Verify the user is actually logged in
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("You must be logged in to save meals.");
+
+      // 2. Send the text to our new Next.js AI API Route
+      const res = await fetch("/api/nutrition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mealText }),
       });
+      
+      const aiData = await res.json();
+      
+      // Update the UI with the actual AI numbers!
+      setResult(aiData);
+
+      // 3. Save it permanently to Supabase!
+      await supabase.from("nutrition_logs").insert({
+        user_id: session.user.id,
+        meal_name: aiData.meal_name,
+        calories: aiData.calories,
+        protein: aiData.protein,
+        carbs: aiData.carbs,
+        fats: aiData.fats
+      });
+
+      setMealText(""); // Clear the text box for the next meal
+      
+    } catch (error) {
+      console.error("Error logging meal:", error);
+      alert("Oops! Something went wrong with the AI or Database.");
+    } finally {
       setIsAnalyzing(false);
-      setMealText(""); // Clear the box
-    }, 2000);
+    }
   };
+  
 
   return (
     <div className="p-6 md:p-12 max-w-4xl mx-auto min-h-screen text-neutral-100">
