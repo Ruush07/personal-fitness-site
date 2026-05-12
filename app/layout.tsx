@@ -40,7 +40,9 @@ export default function RootLayout({
           <Link href="/nutrition" className="p-3 text-neutral-400 hover:text-blue-500 hover:bg-neutral-800 rounded-xl transition-all">
             <Utensils size={24} />
           </Link>
-
+          <Link href="/goals" className="p-3 text-neutral-400 hover:text-blue-500 hover:bg-neutral-800 rounded-xl transition-all">
+            <Target size="{24}"/>
+          </Link>
         </nav>
 
         {/* THE MAIN CONTENT AREA:
