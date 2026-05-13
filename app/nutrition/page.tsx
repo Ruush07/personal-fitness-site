@@ -1,130 +1,191 @@
 "use client";
 
-import { useState } from "react";
-import { Sparkles, Utensils, Send } from "lucide-react";
-import { supabase } from "@/lib/supabase"; // Your database bridge
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { Sparkles, Utensils, Loader2, Plus, Flame } from "lucide-react";
 
 export default function NutritionPage() {
-  const [mealText, setMealText] = useState("");
+  const router = useRouter();
+  
+  const [mealInput, setMealInput] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [todaysLogs, setTodaysLogs] = useState<any[]>([]);
+  const [dailyTotals, setDailyTotals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-  // This is the function we will wire up to the AI in the next step!
-  const handleAnalyzeMeal = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!mealText) return;
+  // 1. Security & Fetching Today's Food
+  useEffect(() => {
+    const fetchLogs = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return router.push("/login");
+
+      // Fetch only meals logged today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const { data: logs } = await supabase
+        .from('nutrition_logs')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .gte('created_at', today.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (logs) {
+        setTodaysLogs(logs);
+        
+        // Calculate the running totals for today
+        const totals = logs.reduce((acc, log) => ({
+          calories: acc.calories + log.calories,
+          protein: acc.protein + log.protein,
+          carbs: acc.carbs + log.carbs,
+          fat: acc.fat + log.fat
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+        
+        setDailyTotals(totals);
+      }
+    };
+    
+    fetchLogs();
+  }, [router]);
+
+  // 2. The AI Magic Function
+  const handleAnalyzeMeal = async () => {
+    if (!mealInput.trim()) return;
     
     setIsAnalyzing(true);
-    
+
     try {
-      // 1. Verify the user is actually logged in
+      // Step A: Talk to your secure Next.js backend
+      const response = await fetch('/api/nutrition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mealText: mealInput }) // This matches your route.ts!
+      });
+
+      if (!response.ok) throw new Error("AI failed to process meal");
+      
+      const aiData = await response.json();
+
+      // Step B: Get User ID
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("You must be logged in to save meals.");
+      if (!session) return;
 
-      // 2. Send the text to our new Next.js AI API Route
-      const res = await fetch("/api/nutrition", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealText }),
-      });
-      
-      const aiData = await res.json();
-      
-      // Update the UI with the actual AI numbers!
-      setResult(aiData);
+      // Step C: Save to Supabase (Mapping 'fats' from your AI to 'fat' in the DB)
+      const { data: newLog, error } = await supabase
+        .from('nutrition_logs')
+        .insert([{
+          user_id: session.user.id,
+          food_desc: aiData.meal_name, 
+          calories: aiData.calories,
+          protein: aiData.protein,
+          carbs: aiData.carbs,
+          fat: aiData.fats 
+        }])
+        .select()
+        .single();
 
-      // 3. Save it permanently to Supabase!
-      await supabase.from("nutrition_logs").insert({
-        user_id: session.user.id,
-        meal_name: aiData.meal_name,
-        calories: aiData.calories,
-        protein: aiData.protein,
-        carbs: aiData.carbs,
-        fats: aiData.fats
-      });
+      if (error) throw error;
 
-      setMealText(""); // Clear the text box for the next meal
+      // Step D: Update the UI instantly
+      setTodaysLogs([newLog, ...todaysLogs]);
+      setDailyTotals(prev => ({
+        calories: prev.calories + newLog.calories,
+        protein: prev.protein + newLog.protein,
+        carbs: prev.carbs + newLog.carbs,
+        fat: prev.fat + newLog.fat
+      }));
       
+      setMealInput(""); // Clear the input box
+
     } catch (error) {
-      console.error("Error logging meal:", error);
-      alert("Oops! Something went wrong with the AI or Database.");
+      console.error(error);
+      alert("Oops! The AI had trouble with that meal. Please try typing it differently.");
     } finally {
       setIsAnalyzing(false);
     }
   };
-  
 
   return (
-    <div className="p-6 md:p-12 max-w-4xl mx-auto min-h-screen text-neutral-100">
+    <div className="p-6 md:p-12 max-w-4xl mx-auto min-h-screen text-neutral-100 pb-24">
       
       <header className="mb-10">
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-          Smart Nutrition <Sparkles className="text-blue-500" />
+          AI Nutrition <Utensils className="text-orange-500" />
         </h1>
-        <p className="text-neutral-400 mt-2">Describe what you ate, and our AI will calculate the macros and log it for you.</p>
+        <p className="text-neutral-400 mt-2">Describe your meal naturally. Let Gemini do the math.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        {/* LEFT SIDE: The AI Input Form */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 shadow-sm flex flex-col h-full">
-          <form onSubmit={handleAnalyzeMeal} className="flex flex-col h-full flex-1">
-            <label className="text-sm font-medium text-neutral-400 mb-3 flex items-center gap-2">
-              <Utensils size={16} /> Meal Description
-            </label>
-            <textarea
-              value={mealText}
-              onChange={(e) => setMealText(e.target.value)}
-              placeholder="e.g., I had 1 bowl approx 150gm daal and then 200gm paneer for lunch..."
-              className="flex-1 bg-neutral-950 border border-neutral-800 rounded-xl p-4 text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all min-h-[200px]"
-            />
-            <button
-              type="submit"
-              disabled={isAnalyzing || !mealText}
-              className="mt-4 bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-800 disabled:text-neutral-500 text-white py-4 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-            >
-              {isAnalyzing ? (
-                "Analyzing with AI..."
-              ) : (
-                <>Analyze & Log <Send size={18} /></>
-              )}
-            </button>
-          </form>
-        </div>
-
-        {/* RIGHT SIDE: The Results Card */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 shadow-sm flex flex-col justify-center">
-          {result ? (
-            <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-              <div className="text-center pb-6 border-b border-neutral-800">
-                <h2 className="text-5xl font-bold text-white mb-2">{result.calories}</h2>
-                <p className="text-neutral-400 font-medium">Total Calories Logged</p>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex justify-between items-center bg-neutral-950 p-4 rounded-xl border border-neutral-800">
-                  <span className="text-neutral-400">Protein</span>
-                  <span className="font-bold text-lg">{result.protein}g</span>
-                </div>
-                <div className="flex justify-between items-center bg-neutral-950 p-4 rounded-xl border border-neutral-800">
-                  <span className="text-neutral-400">Carbs</span>
-                  <span className="font-bold text-lg">{result.carbs}g</span>
-                </div>
-                <div className="flex justify-between items-center bg-neutral-950 p-4 rounded-xl border border-neutral-800">
-                  <span className="text-neutral-400">Fats</span>
-                  <span className="font-bold text-lg">{result.fats}g</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-neutral-500 space-y-4 py-12">
-              <Sparkles size={48} className="opacity-20" />
-              <p className="text-center max-w-[250px]">Waiting for your meal description...</p>
-            </div>
-          )}
-        </div>
-
+      {/* AI INPUT BOX */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-2 shadow-lg flex items-center gap-2 mb-10 transition-all focus-within:border-orange-500/50 focus-within:ring-1 focus-within:ring-orange-500/50">
+        <input 
+          type="text" 
+          value={mealInput}
+          onChange={(e) => setMealInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleAnalyzeMeal()}
+          placeholder="e.g., 3 scrambled eggs, a slice of sourdough, and black coffee..."
+          className="flex-1 bg-transparent border-none p-4 text-white placeholder:text-neutral-500 outline-none"
+          disabled={isAnalyzing}
+        />
+        <button 
+          onClick={handleAnalyzeMeal}
+          disabled={isAnalyzing || !mealInput.trim()}
+          className="bg-orange-600 hover:bg-orange-700 disabled:bg-neutral-800 disabled:text-neutral-500 text-white p-4 rounded-2xl font-bold transition-all flex items-center gap-2"
+        >
+          {isAnalyzing ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
+          <span className="hidden md:inline">{isAnalyzing ? "Analyzing..." : "Log Meal"}</span>
+        </button>
       </div>
+
+      {/* TODAY's SUMMARY */}
+      <div className="mb-8">
+        <h2 className="text-lg font-bold text-white mb-4">Today's Intake</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl flex flex-col justify-center items-center">
+            <span className="text-neutral-400 text-xs mb-1 flex items-center gap-1"><Flame size={12}/> Calories</span>
+            <span className="text-2xl font-bold text-white">{dailyTotals.calories}</span>
+          </div>
+          <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl flex flex-col justify-center items-center">
+            <span className="text-blue-400 text-xs mb-1">Protein</span>
+            <span className="text-2xl font-bold text-white">{dailyTotals.protein}g</span>
+          </div>
+          <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl flex flex-col justify-center items-center">
+            <span className="text-green-400 text-xs mb-1">Carbs</span>
+            <span className="text-2xl font-bold text-white">{dailyTotals.carbs}g</span>
+          </div>
+          <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl flex flex-col justify-center items-center">
+            <span className="text-orange-400 text-xs mb-1">Fats</span>
+            <span className="text-2xl font-bold text-white">{dailyTotals.fat}g</span>
+          </div>
+        </div>
+      </div>
+
+      {/* TIMELINE OF MEALS */}
+      <div className="space-y-4">
+        {todaysLogs.length === 0 ? (
+          <div className="text-center py-12 border-2 border-dashed border-neutral-800 rounded-3xl text-neutral-500">
+            <Utensils size={32} className="mx-auto mb-3 opacity-20" />
+            <p>You haven't logged any meals today.</p>
+          </div>
+        ) : (
+          todaysLogs.map((log) => (
+            <div key={log.id} className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl flex flex-col md:flex-row justify-between md:items-center gap-4">
+              <div>
+                <h3 className="font-bold text-white text-lg capitalize">{log.food_desc}</h3>
+                <p className="text-xs text-neutral-500 mt-1">
+                  {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+              <div className="flex gap-4 text-sm font-medium">
+                <div className="text-neutral-300">{log.calories} <span className="text-neutral-500 text-xs font-normal">kcal</span></div>
+                <div className="text-blue-300">{log.protein}g <span className="text-blue-500/50 text-xs font-normal">P</span></div>
+                <div className="text-green-300">{log.carbs}g <span className="text-green-500/50 text-xs font-normal">C</span></div>
+                <div className="text-orange-300">{log.fat}g <span className="text-orange-500/50 text-xs font-normal">F</span></div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
     </div>
   );
 }
