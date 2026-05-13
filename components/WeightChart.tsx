@@ -60,21 +60,49 @@ export default function WeightChart() {
   }
 
   // 3. THE ACTIVE CHART (This will appear once you log data)
+  // 3. THE ACTIVE CHART (This will appear once you log data)
   return (
     <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 h-72">
       <h3 className="text-lg font-bold text-white mb-6">Weight Progress</h3>
       <div className="h-48 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data="{data}">
-            <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical="{false}"/>
-            <XAxis dataKey="date" stroke="#737373" fontSize="{12}" tickLine="{false}" axisLine="{false}"/>
-            <YAxis domain="{['dataMin" - 2', 'dataMax + 2']} stroke="#737373" fontSize="{12}" tickLine="{false}" axisLine="{false}" tickFormatter="{(value)"> `${value}kg`}
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
+            
+            <XAxis 
+              dataKey="date" 
+              stroke="#737373" 
+              fontSize={12} 
+              tickLine={false} 
+              axisLine={false} 
             />
-            <Tooltip contentStyle="{{" backgroundColor: '#171717', border: '1px solid #262626', borderRadius: '12px', color: '#fff' }} itemStyle="{{" '#3b82f6'/>
-            <Line type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth="{3}" dot="{{" fill: '#3b82f6', strokeWidth: 2, r: 4 }} activeDot="{{" 6, '#60a5fa'/>
-          </YAxis></LineChart>
+            
+            <YAxis 
+              domain={['dataMin - 2', 'dataMax + 2']} 
+              stroke="#737373" 
+              fontSize={12} 
+              tickLine={false} 
+              axisLine={false} 
+              tickFormatter={(value) => `${value}kg`}
+            />
+            
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#171717', border: '1px solid #262626', borderRadius: '12px', color: '#fff' }}
+              itemStyle={{ color: '#3b82f6' }}
+            />
+            
+            <Line 
+              type="monotone" 
+              dataKey="weight" 
+              stroke="#3b82f6" 
+              strokeWidth={3}
+              dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, fill: '#60a5fa' }}
+            />
+          </LineChart>
         </ResponsiveContainer>
       </div>
     </div>
   );
 }
+

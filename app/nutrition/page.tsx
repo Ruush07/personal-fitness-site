@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles, Utensils, Send } from "lucide-react";
-//import { supabase } from "../lib/supabase"; // Your database bridge
+import { supabase } from "@/lib/supabase"; // Your database bridge
 
 export default function NutritionPage() {
   const [mealText, setMealText] = useState("");
