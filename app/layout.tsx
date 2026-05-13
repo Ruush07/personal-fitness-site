@@ -17,12 +17,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      {/* Notice the flex-col-reverse md:flex-row right below here! */}
+      {/* flex-col-reverse puts sidebar at bottom on mobile. md:flex-row puts it on the left for laptop */}
       <body className={`${inter.className} bg-neutral-950 text-neutral-100 flex flex-col-reverse md:flex-row h-screen overflow-hidden`}>
         
         <Sidebar />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto w-full h-full">
           {children}
         </main>
 
