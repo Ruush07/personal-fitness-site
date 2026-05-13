@@ -1,43 +1,72 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import { Target, Activity, Flame, Save } from "lucide-react";
 
 export default function GoalsPage() {
-  // We set the initial states based on your example and standard baselines
+  const router = useRouter(); 
+
+  // Security Guard: Check if logged in (Only written once!)
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+      }
+    };
+    checkUser();
+  }, [router]);
+
+  // Biological Metrics
   const [currentWeight, setCurrentWeight] = useState(97);
   const [goalWeight, setGoalWeight] = useState(80);
-  const [heightCm, setHeightCm] = useState(175); // User needs to adjust this!
+  const [heightCm, setHeightCm] = useState(175); 
   const [age, setAge] = useState(20); 
   
   // Activity Multipliers
-  const [activityLevel, setActivityLevel] = useState(1.55); // Default to Moderate (10k steps + gym)
-  
-  // Weight Loss Rate (500 cal deficit = ~0.5kg/week, 1000 cal deficit = ~1kg/week)
+  const [activityLevel, setActivityLevel] = useState(1.55); 
   const [deficit, setDeficit] = useState(1000); 
 
   // The output states
   const [tdee, setTdee] = useState(0);
   const [targetCalories, setTargetCalories] = useState(0);
 
-  // This hook recalculates the math instantly whenever a slider or number changes
+  // Math recalculation hook
   useEffect(() => {
-    // Mifflin-St Jeor Equation for men
     const bmr = (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + 5;
-    
-    // Total Daily Energy Expenditure (Calories burned existing + moving)
     const calculatedTdee = Math.round(bmr * activityLevel);
-    
-    // The final target is what you burn minus your goal deficit
     const finalTarget = calculatedTdee - deficit;
 
     setTdee(calculatedTdee);
     setTargetCalories(finalTarget);
   }, [currentWeight, heightCm, age, activityLevel, deficit]);
 
-  const handleSaveGoals = () => {
-    // Later, we will write this to the Supabase profiles table!
-    alert(`Saved! Your new daily target is ${targetCalories} kcal.`);
+  // Real Database Save Logic
+  const handleSaveGoals = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert("Please log in to save goals.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ 
+          id: session.user.id, 
+          target_calories: targetCalories,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      
+      alert(`Successfully saved! Your new daily target is ${targetCalories} kcal.`);
+    } catch (error) {
+      console.error("Error saving goals:", error);
+      alert("Failed to save goals. Check console.");
+    }
   };
 
   return (
@@ -151,7 +180,6 @@ export default function GoalsPage() {
             <Save size={20} /> Update My Dashboard
           </button>
           
-          {/* Decorative background shape */}
           <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
         </div>
 
