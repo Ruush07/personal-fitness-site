@@ -81,12 +81,16 @@ export default function WorkoutsPage() {
           <p className="text-neutral-400 mt-2">Log your daily sets, reps, and load.</p>
         </div>
       </header>
-
-      <div className="flex gap-2 p-1 bg-neutral-900 border border-neutral-800 rounded-2xl mb-8 w-fit overflow-x-auto">
+<div className="flex w-full md:w-fit p-1 bg-neutral-900 border border-neutral-800 rounded-2xl mb-8">
         {(["Push", "Pull", "Legs"] as const).map((split) => (
           <button
-            key={split} onClick={() => handleSplitChange(split)}
-            className={`px-6 py-2 rounded-xl font-medium transition-all whitespace-nowrap ${activeSplit === split ? "bg-blue-600 text-white shadow-lg" : "text-neutral-400 hover:text-white hover:bg-neutral-800"}`}
+            key={split} 
+            onClick={() => handleSplitChange(split)}
+            className={`flex-1 md:flex-none md:px-8 py-3 md:py-2 rounded-xl font-medium transition-all text-sm md:text-base whitespace-nowrap ${
+              activeSplit === split 
+                ? "bg-blue-600 text-white shadow-lg" 
+                : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+            }`}
           >
             {split} Day
           </button>
