@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabase"; 
+import { supabase } from "@/lib/supabase"; 
 import { Activity, Flame, Utensils, LogOut, ChevronRight } from "lucide-react";
-import WeightChart from "../components/WeightChart";
+import WeightChart from "@/components/WeightChart";
 
 export default function Dashboard() {
   const router = useRouter();

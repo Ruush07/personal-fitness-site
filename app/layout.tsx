@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-import { LayoutDashboard, Dumbbell, Utensils } from "lucide-react";
-
+import { LayoutDashboard, Dumbbell, Utensils, Target } from "lucide-react";
 // This sets the default font for your entire app
 const inter = Inter({ subsets: ["latin"] });
 
