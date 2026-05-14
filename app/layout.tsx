@@ -17,12 +17,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      {/* flex-col-reverse puts sidebar at bottom on mobile. md:flex-row puts it on the left for laptop */}
-      <body className={`${inter.className} bg-neutral-950 text-neutral-100 flex flex-col-reverse md:flex-row h-screen overflow-hidden`}>
+      {/* h-[100dvh] is "Dynamic Viewport Height" - it adjusts when the browser bars appear/disappear */}
+      <body className={`${inter.className} bg-neutral-950 text-neutral-100 flex flex-col-reverse md:flex-row h-[100dvh] overflow-hidden`}>
         
         <Sidebar />
 
-        <main className="flex-1 overflow-y-auto w-full h-full">
+        <main className="flex-1 overflow-y-auto w-full relative">
           {children}
         </main>
 

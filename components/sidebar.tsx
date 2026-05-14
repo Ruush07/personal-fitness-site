@@ -17,8 +17,10 @@ export default function Sidebar() {
   };
 
   return (
-    <nav className="w-full md:w-20 h-16 md:h-screen bg-neutral-900 border-t md:border-t-0 md:border-r border-neutral-800 flex flex-row md:flex-col justify-around md:justify-between items-center px-2 md:py-8 z-[100] shrink-0 pb-safe">
-      <div className="flex flex-row md:flex-col justify-around md:justify-start w-full md:w-auto gap-1 md:gap-8">
+    <nav className="w-full md:w-20 h-16 md:h-screen bg-neutral-900 border-t md:border-t-0 md:border-r border-neutral-800 flex flex-row md:flex-col justify-around md:justify-between items-center px-2 md:py-8 z-[999] shrink-0">
+      
+      {/* Link Group */}
+      <div className="flex flex-row md:flex-col justify-around md:justify-start w-full md:w-auto gap-1 md:gap-8 items-center">
         <Link href="/" className={`p-3 rounded-xl transition-all ${pathname === '/' ? 'text-blue-500 bg-neutral-800' : 'text-neutral-400'}`}>
           <LayoutDashboard size={24} />
         </Link>
@@ -31,9 +33,17 @@ export default function Sidebar() {
         <Link href="/goals" className={`p-3 rounded-xl transition-all ${pathname === '/goals' ? 'text-blue-500 bg-neutral-800' : 'text-neutral-400'}`}>
           <Target size={24} />
         </Link>
-        <button onClick={handleSignOut} className="md:hidden p-3 text-neutral-500"><LogOut size={24} /></button>
+        {/* Mobile Logout */}
+        <button onClick={handleSignOut} className="md:hidden p-3 text-neutral-500">
+          <LogOut size={24} />
+        </button>
       </div>
-      <button onClick={handleSignOut} className="hidden md:flex p-3 text-neutral-500 hover:text-red-500 mt-auto"><LogOut size={24} /></button>
+
+      {/* Desktop Logout */}
+      <button onClick={handleSignOut} className="hidden md:flex p-3 text-neutral-500 hover:text-red-500 mt-auto">
+        <LogOut size={24} />
+      </button>
+
     </nav>
   );
 }
