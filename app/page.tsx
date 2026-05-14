@@ -45,7 +45,13 @@ export default function DashboardPage() {
       });
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    const todayStr = new Intl.DateTimeFormat('en-CA', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit', 
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone 
+    }).format(today);
 
     // 2. Fetch Today's Consumed Macros (FIXED: using log_date and fats)
     const { data: logs } = await supabase
