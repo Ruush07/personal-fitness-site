@@ -3,132 +3,109 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Dumbbell, Plus, Save, History, Loader2, CheckCircle2 } from "lucide-react";
-
-const templates = {
-  Push: ["Bench Press", "Overhead Press", "Incline Dumbbell Press", "Tricep Pushdowns", "Lateral Raises"],
-  Pull: ["Deadlifts", "Barbell Rows", "Pull-ups", "Face Pulls", "Bicep Curls"],
-  Legs: ["Squats", "Leg Press", "Romanian Deadlifts", "Leg Extensions", "Calf Raises"]
-};
+import { Dumbbell, Plus, Save, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function WorkoutsPage() {
   const router = useRouter();
-  
-  const [activeSplit, setActiveSplit] = useState<"Push" | "Pull" | "Legs">("Push");
+  const [routines, setRoutines] = useState<any[]>([]);
+  const [selectedRoutine, setSelectedRoutine] = useState<any>(null);
+  const [currentWorkout, setCurrentWorkout] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  
-  const [currentWorkout, setCurrentWorkout] = useState(
-    templates.Push.map(ex => ({ name: ex, sets: 3, reps: 10, weight: 0 }))
-  );
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) router.push("/login");
-    };
-    checkUser();
-  }, [router]);
+    fetchUserData();
+  }, []);
 
-  const handleSplitChange = (split: "Push" | "Pull" | "Legs") => {
-    setActiveSplit(split);
-    setCurrentWorkout(templates[split].map(ex => ({ name: ex, sets: 3, reps: 10, weight: 0 })));
-    setSaveSuccess(false); 
+  const fetchUserData = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return router.push("/login");
+
+    const { data: userRoutines } = await supabase.from('user_routines').select('*');
+    if (userRoutines && userRoutines.length > 0) {
+      setRoutines(userRoutines);
+      loadRoutine(userRoutines[0]);
+    }
   };
 
-  const updateExercise = (index: number, field: string, value: number | string) => {
+  const loadRoutine = (routine: any) => {
+    setSelectedRoutine(routine);
+    setCurrentWorkout(routine.exercises.map((name: string) => ({ name, sets: 3, reps: 10, weight: 0 })));
+    setSaveSuccess(false);
+  };
+
+  const updateExercise = (index: number, field: string, value: any) => {
     const updated = [...currentWorkout];
     updated[index] = { ...updated[index], [field]: value };
     setCurrentWorkout(updated);
   };
 
-  const addCustomExercise = () => {
-    setCurrentWorkout([...currentWorkout, { name: "New Exercise", sets: 3, reps: 10, weight: 0 }]);
-  };
-
   const saveWorkoutLog = async () => {
     setIsSaving(true);
-    setSaveSuccess(false);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not logged in");
-
-      const { error } = await supabase.from('workout_logs').insert([{
-        user_id: session.user.id,
-        split_name: activeSplit,
-        exercises: currentWorkout 
-      }]);
-
-      if (error) throw error;
+    const { data: { session } } = await supabase.auth.getSession();
+    const { error } = await supabase.from('workout_logs').insert([{
+      user_id: session?.user.id,
+      split_name: selectedRoutine.routine_name,
+      exercises: currentWorkout
+    }]);
+    setIsSaving(false);
+    if (!error) {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (error) {
-      console.error("Error saving workout:", error);
-      alert("Failed to log workout.");
-    } finally {
-      setIsSaving(false);
     }
   };
 
+  if (routines.length === 0) {
+    return (
+      <div className="p-12 text-center h-full flex flex-col items-center justify-center">
+        <AlertCircle size={48} className="text-neutral-700 mb-4" />
+        <h2 className="text-xl font-bold">No routines found</h2>
+        <p className="text-neutral-500 mb-6">Create your first routine in the Designer section.</p>
+        <button onClick={() => router.push('/routines')} className="bg-blue-600 px-8 py-3 rounded-xl font-bold">Go to Designer</button>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 md:p-12 max-w-5xl mx-auto min-h-screen text-neutral-100 pb-24">
-      <header className="mb-10 flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            Active Volume <Dumbbell className="text-blue-500" />
-          </h1>
-          <p className="text-neutral-400 mt-2">Log your daily sets, reps, and load.</p>
-        </div>
-      </header>
-<div className="flex w-full md:w-fit p-1 bg-neutral-900 border border-neutral-800 rounded-2xl mb-8">
-        {(["Push", "Pull", "Legs"] as const).map((split) => (
+    <div className="p-6 md:p-12 max-w-5xl mx-auto pb-24">
+      <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">Active Volume <Dumbbell className="text-blue-500" /></h1>
+      
+      {/* Dynamic Tabs */}
+      <div className="flex gap-2 p-1 bg-neutral-900 border border-neutral-800 rounded-2xl mb-8 w-full overflow-x-auto no-scrollbar">
+        {routines.map((r) => (
           <button
-            key={split} 
-            onClick={() => handleSplitChange(split)}
-            className={`flex-1 md:flex-none md:px-8 py-3 md:py-2 rounded-xl font-medium transition-all text-sm md:text-base whitespace-nowrap ${
-              activeSplit === split 
-                ? "bg-blue-600 text-white shadow-lg" 
-                : "text-neutral-400 hover:text-white hover:bg-neutral-800"
-            }`}
+            key={r.id} onClick={() => loadRoutine(r)}
+            className={`px-6 py-2 rounded-xl font-medium transition-all whitespace-nowrap ${selectedRoutine?.id === r.id ? "bg-blue-600 text-white" : "text-neutral-400"}`}
           >
-            {split} Day
+            {r.routine_name}
           </button>
         ))}
       </div>
 
-      <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 shadow-sm mb-8">
-        <div className="grid grid-cols-12 gap-4 mb-4 px-4 text-sm font-semibold text-neutral-400">
-          <div className="col-span-12 md:col-span-6">Exercise</div>
-          <div className="col-span-4 md:col-span-2 text-center">Sets</div>
-          <div className="col-span-4 md:col-span-2 text-center">Reps</div>
-          <div className="col-span-4 md:col-span-2 text-center">Weight (kg)</div>
-        </div>
-
-        <div className="space-y-3">
-          {currentWorkout.map((exercise, idx) => (
-            <div key={idx} className="grid grid-cols-12 gap-4 items-center bg-neutral-950 p-4 rounded-2xl border border-neutral-800">
-              <div className="col-span-12 md:col-span-6">
-                <input type="text" value={exercise.name} onChange={(e) => updateExercise(idx, "name", e.target.value)} className="w-full bg-transparent font-medium text-white outline-none focus:border-b border-blue-500"/>
+      <div className="space-y-4 mb-8">
+        {currentWorkout.map((ex, idx) => (
+          <div key={idx} className="bg-neutral-900 border border-neutral-800 p-4 rounded-3xl">
+            <h3 className="font-bold text-white mb-3 px-1">{ex.name}</h3>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <span className="text-[10px] uppercase text-neutral-500 block text-center mb-1">Sets</span>
+                <input type="number" value={ex.sets} onChange={(e) => updateExercise(idx, 'sets', e.target.value)} className="w-full bg-neutral-950 p-3 rounded-xl text-center outline-none border border-neutral-800 focus:border-blue-500" />
               </div>
-              <div className="col-span-4 md:col-span-2">
-                <input type="number" value={exercise.sets} onChange={(e) => updateExercise(idx, "sets", Number(e.target.value))} className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2 text-center text-white outline-none focus:border-blue-500"/>
+              <div className="flex-1">
+                <span className="text-[10px] uppercase text-neutral-500 block text-center mb-1">Reps</span>
+                <input type="number" value={ex.reps} onChange={(e) => updateExercise(idx, 'reps', e.target.value)} className="w-full bg-neutral-950 p-3 rounded-xl text-center outline-none border border-neutral-800 focus:border-blue-500" />
               </div>
-              <div className="col-span-4 md:col-span-2">
-                <input type="number" value={exercise.reps} onChange={(e) => updateExercise(idx, "reps", Number(e.target.value))} className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2 text-center text-white outline-none focus:border-blue-500"/>
-              </div>
-              <div className="col-span-4 md:col-span-2">
-                <input type="number" value={exercise.weight} onChange={(e) => updateExercise(idx, "weight", Number(e.target.value))} className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2 text-center text-white outline-none focus:border-blue-500"/>
+              <div className="flex-1">
+                <span className="text-[10px] uppercase text-neutral-500 block text-center mb-1">Kg</span>
+                <input type="number" value={ex.weight} onChange={(e) => updateExercise(idx, 'weight', e.target.value)} className="w-full bg-neutral-950 p-3 rounded-xl text-center outline-none border border-neutral-800 focus:border-blue-500" />
               </div>
             </div>
-          ))}
-        </div>
-        <button onClick={addCustomExercise} className="w-full mt-6 py-4 border-2 border-dashed border-neutral-800 rounded-2xl text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors flex items-center justify-center gap-2 font-medium"><Plus size={18} /> Add Custom Exercise</button>
+          </div>
+        ))}
       </div>
 
-      <button onClick={saveWorkoutLog} disabled={isSaving || saveSuccess} className={`w-full md:w-auto md:px-12 font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 ${saveSuccess ? "bg-green-600 hover:bg-green-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}`}>
-        {isSaving ? <Loader2 size={20} className="animate-spin" /> : saveSuccess ? <CheckCircle2 size={20} /> : <Save size={20} />}
-        {isSaving ? "Saving..." : saveSuccess ? "Workout Logged!" : `Log ${activeSplit} Workout`}
+      <button onClick={saveWorkoutLog} disabled={isSaving || saveSuccess} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 ${saveSuccess ? "bg-green-600" : "bg-blue-600"}`}>
+        {isSaving ? <Loader2 className="animate-spin" /> : saveSuccess ? <CheckCircle2 /> : <Save />} {saveSuccess ? "Logged!" : "Save Workout"}
       </button>
     </div>
   );
