@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     const { mealText } = await req.json();
 
     // Using the explicit latest tag
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
       You are an expert nutritionist. Analyze the following meal description and estimate the total calories, protein, carbs, and fats.
