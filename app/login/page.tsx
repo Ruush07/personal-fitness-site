@@ -12,18 +12,17 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleAuth = async (e: React.FormEvent) => {
+const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-try {
+
+    try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ 
           email, 
           password,
           options: {
-            // This is the CRITICAL line:
             emailRedirectTo: 'https://personal-fitness-site.vercel.app',
           }
         });
@@ -34,7 +33,12 @@ try {
         if (error) throw error;
         router.push("/"); 
       }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
+  };
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center p-4">
       <div className="max-w-md w-full bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-xl">
