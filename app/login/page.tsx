@@ -17,25 +17,24 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
-    try {
+try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            // This is the CRITICAL line:
+            emailRedirectTo: 'https://personal-fitness-site.vercel.app',
+          }
+        });
         if (error) throw error;
-        alert("Check your email for the confirmation link! (Or check your Supabase dashboard)");
+        alert("Check your email for the confirmation link!");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        // If login is successful, go straight to the Dashboard!
         router.push("/"); 
       }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
-  };
-
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col justify-center items-center p-4">
       <div className="max-w-md w-full bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-xl">
