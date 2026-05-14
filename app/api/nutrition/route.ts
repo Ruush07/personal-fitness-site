@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const { mealText } = await req.json();
 
     // 2. Select the fastest AI model for text processing
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
     // 3. Write a strict Prompt System Instruction
     const prompt = `
