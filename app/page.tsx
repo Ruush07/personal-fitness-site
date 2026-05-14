@@ -69,7 +69,7 @@ export default function DashboardPage() {
     <div className="p-6 md:p-12 max-w-6xl mx-auto min-h-screen text-neutral-100">
       <header className="mb-10">
         <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-          Welcome back v1, <span className="text-blue-500">{userName}</span>
+          Welcome back homie , <span className="text-blue-500">{userName}</span>
         </h1>
         <p className="text-neutral-400">Here is your daily overview. Stay on track.</p>
       </header>
