@@ -75,6 +75,7 @@ export default function NutritionPage() {
         .from('nutrition_logs')
         .insert([{
           user_id: session.user.id,
+          log_date: new Date().toISOString().split('T')[0],
           meal_name: aiData.meal_name, 
           calories: aiData.calories,
           protein: aiData.protein,
