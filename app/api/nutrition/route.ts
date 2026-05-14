@@ -1,25 +1,25 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// Fallback to empty string prevents crash if env var is missing locally
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(req: Request) {
   try {
     const { mealText } = await req.json();
 
-    // MUST use the -latest tag here so Vercel can find it
+    // Using the explicit latest tag
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
-    // Your stricter prompt
     const prompt = `
       You are an expert nutritionist. Analyze the following meal description and estimate the total calories, protein, carbs, and fats.
-      Respond ONLY with a valid JSON object. Do not include any markdown formatting, explanations, or plain text. only return the specifics asked in json format
+      Respond ONLY with a valid JSON object.
 
       Meal Description: "${mealText}"
 
       Expected JSON format:
       {
-        "meal_name": "Short 3-word summary of the food",
+        "meal_name": "Short 3-word summary",
         "calories": 0,
         "protein": 0,
         "carbs": 0,
@@ -30,14 +30,25 @@ export async function POST(req: Request) {
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
     
-    // We still keep the basic `.replace()` just in case it ignores your strict prompt
-    const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    const nutritionData = JSON.parse(cleanJson);
+    // SERVER LOG: This prints the raw AI output to your Vercel logs so we can see what it actually said
+    console.log("RAW AI RESPONSE:", responseText);
+
+    // BULLETPROOF JSON EXTRACTOR: 
+    // This looks for the first '{' and the last '}' and grabs everything inside it, ignoring markdown.
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      throw new Error("AI did not return a valid JSON structure.");
+    }
+
+    // Parse the cleanly extracted JSON string
+    const nutritionData = JSON.parse(jsonMatch[0]);
 
     return NextResponse.json(nutritionData);
     
   } catch (error) {
-    console.error("AI Error:", error);
+    // This logs the exact crash reason to Vercel
+    console.error("AI ROUTE CRASHED:", error);
     return NextResponse.json({ error: "Failed to analyze meal" }, { status: 500 });
   }
 }
