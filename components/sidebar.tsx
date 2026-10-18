@@ -9,7 +9,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  if (pathname === "/login") return null;
+  if (["/login", "/forgot-password", "/reset-password"].includes(pathname)) return null;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();

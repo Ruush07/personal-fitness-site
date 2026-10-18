@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Dumbbell, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase"; 
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
 const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -23,7 +25,7 @@ const handleAuth = async (e: React.FormEvent) => {
           email, 
           password,
           options: {
-            emailRedirectTo: 'https://personal-fitness-site.vercel.app',
+            emailRedirectTo: `${window.location.origin}/`,
           }
         });
         if (error) throw error;
@@ -33,8 +35,8 @@ const handleAuth = async (e: React.FormEvent) => {
         if (error) throw error;
         router.push("/"); 
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Authentication failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -89,6 +91,14 @@ const handleAuth = async (e: React.FormEvent) => {
             {!loading && <ArrowRight size={18} />}
           </button>
         </form>
+
+        {!isSignUp && (
+          <div className="mt-4 text-right">
+            <Link href="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300">
+              Forgot password?
+            </Link>
+          </div>
+        )}
 
         <div className="mt-6 text-center">
           <button 
