@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { LayoutDashboard, Dumbbell, Utensils, Target, LogOut, ListChecks } from "lucide-react";
+import { LayoutDashboard, Dumbbell, Utensils, Target, LogOut, ListChecks, Sparkles } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -24,6 +24,9 @@ export default function Sidebar() {
         </Link>
         <Link href="/workouts" className={`p-3 rounded-xl transition-all ${pathname === '/workouts' ? 'text-blue-500 bg-neutral-800' : 'text-neutral-400'}`}>
           <Dumbbell size={24} />
+        </Link>
+        <Link href="/trainer" aria-label="AI fitness coach" title="AI fitness coach" className={`p-3 rounded-xl transition-all ${pathname === '/trainer' ? 'text-blue-500 bg-neutral-800' : 'text-neutral-400'}`}>
+          <Sparkles size={24} />
         </Link>
         {/* NEW ROUTINE DESIGNER LINK */}
         <Link href="/routines" className={`p-3 rounded-xl transition-all ${pathname === '/routines' ? 'text-blue-500 bg-neutral-800' : 'text-neutral-400'}`}>

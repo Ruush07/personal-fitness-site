@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { Target, Activity, Flame, Save, PieChart, AlertTriangle, TrendingDown, Info } from "lucide-react";
+import { Target, Activity, Flame, Save, PieChart, AlertTriangle, TrendingDown } from "lucide-react";
 
 const calculateBMR = (weight: number, height: number, age: number, gender: "male" | "female") => {
-  let bmr = (10 * weight) + (6.25 * height) - (5 * age);
+  const bmr = (10 * weight) + (6.25 * height) - (5 * age);
   return gender === "male" ? bmr + 5 : bmr - 161;
 };
 
@@ -13,7 +13,7 @@ const calculateTDEE = (bmr: number, activityLevel: number) => Math.round(bmr * a
 
 const calculateTargetCalories = (tdee: number, gender: "male" | "female", goal: string) => {
   let target = tdee;
-  let isCut = goal.includes("cut");
+  const isCut = goal.includes("cut");
 
   // Fixed Math: Perfectly aligns with exact 0.5kg and 1kg weekly deficits
   switch (goal) {
@@ -39,10 +39,10 @@ const calculateTargetCalories = (tdee: number, gender: "male" | "female", goal: 
 };
 
 const calculateMacros = (calories: number, weight: number, goal: string) => {
-  let proteinMultiplier = goal.includes("cut") ? 2.2 : 1.8;
-  let p = Math.min(weight * proteinMultiplier, 190);
-  let f = (calories * 0.25) / 9;
-  let c = (calories - (p * 4) - (f * 9)) / 4;
+  const proteinMultiplier = goal.includes("cut") ? 2.2 : 1.8;
+  const p = Math.min(weight * proteinMultiplier, 190);
+  const f = (calories * 0.25) / 9;
+  const c = (calories - (p * 4) - (f * 9)) / 4;
   return { p: Math.round(p), f: Math.round(f), c: Math.round(Math.max(c, 0)) };
 };
 
@@ -54,11 +54,9 @@ export default function GoalsPage() {
   const [activity, setActivity] = useState(1.55); 
   const [goal, setGoal] = useState("aggressive_cut");
 
-  const [results, setResults] = useState({ bmr: 0, tdee: 0, target: 0, capped: false, weeklyChange: 0, macros: { p: 0, f: 0, c: 0 }, warnings: [] as string[] });
-
-  useEffect(() => {
+  const results = useMemo(() => {
     const w = Number(weight) || 0; const h = Number(height) || 0; const a = Number(age) || 0;
-    if (w === 0 || h === 0 || a === 0) return;
+    if (w === 0 || h === 0 || a === 0) return { bmr: 0, tdee: 0, target: 0, capped: false, weeklyChange: 0, macros: { p: 0, f: 0, c: 0 }, warnings: [] as string[] };
 
     const bmr = calculateBMR(w, h, a, gender);
     const tdee = calculateTDEE(bmr, activity);
@@ -70,7 +68,7 @@ export default function GoalsPage() {
     const msgs: string[] = [];
     if (wasCapped) msgs.push(`Calorie floor triggered. Deficit capped at ${gender === "male" ? 1500 : 1200} kcal to prevent metabolic damage.`);
 
-    setResults({ bmr, tdee, target, capped: wasCapped, weeklyChange, macros, warnings: msgs });
+    return { bmr, tdee, target, capped: wasCapped, weeklyChange, macros, warnings: msgs };
   }, [weight, height, age, gender, activity, goal]);
 
   const handleSaveGoals = async () => {

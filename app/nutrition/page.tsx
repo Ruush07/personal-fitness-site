@@ -5,12 +5,24 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Sparkles, Utensils, Loader2, Flame } from "lucide-react";
 
+type NutritionLog = {
+  id: string;
+  meal_name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  created_at: string;
+};
+
+type MealEstimate = Omit<NutritionLog, "id" | "created_at">;
+
 export default function NutritionPage() {
   const router = useRouter();
   
   const [mealInput, setMealInput] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [todaysLogs, setTodaysLogs] = useState<any[]>([]);
+  const [todaysLogs, setTodaysLogs] = useState<NutritionLog[]>([]);
   const [dailyTotals, setDailyTotals] = useState({ calories: 0, protein: 0, carbs: 0, fats: 0 });
 
   useEffect(() => {
@@ -56,12 +68,12 @@ export default function NutritionPage() {
       });
 
       if (!response.ok) throw new Error("AI failed to process meal");
-      const aiData = await response.json();
+      const aiData = await response.json() as MealEstimate;
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data: newLog, error } = await supabase
+      const { data: newLogData, error } = await supabase
         .from('nutrition_logs')
         .insert([{
           user_id: session.user.id,
@@ -80,6 +92,8 @@ export default function NutritionPage() {
         throw new Error(`Database Error: ${error.message}`);
       }
 
+      const newLog = newLogData as NutritionLog;
+
       setTodaysLogs([newLog, ...todaysLogs]);
       setDailyTotals(prev => ({
         calories: prev.calories + newLog.calories,
@@ -90,10 +104,10 @@ export default function NutritionPage() {
       
       setMealInput(""); 
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("FRONTEND CRASH:", error);
       // FIXED: The real error will now actually show up on your screen!
-      alert(`THE REAL ERROR: ${error.message || "Unknown crash"}`);
+      alert(`Could not process that meal: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setIsAnalyzing(false);
     }
@@ -129,7 +143,7 @@ export default function NutritionPage() {
       </div>
 
       <div className="mb-8">
-        <h2 className="text-lg font-bold text-white mb-4">Today's Intake</h2>
+        <h2 className="text-lg font-bold text-white mb-4">Today&apos;s Intake</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl flex flex-col justify-center items-center">
             <span className="text-neutral-400 text-xs mb-1 flex items-center gap-1"><Flame size={12}/> Calories</span>
@@ -154,7 +168,7 @@ export default function NutritionPage() {
         {todaysLogs.length === 0 ? (
           <div className="text-center py-12 border-2 border-dashed border-neutral-800 rounded-3xl text-neutral-500">
             <Utensils size={32} className="mx-auto mb-3 opacity-20" />
-            <p>You haven't logged any meals today.</p>
+            <p>You haven&apos;t logged any meals today.</p>
           </div>
         ) : (
           todaysLogs.map((log) => (
