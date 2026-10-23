@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { FitnessRoutine, getPersonalRecordHint, getProgressionHint, normalizeExercises, PlannedExercise, WorkoutLog, workoutScore } from "@/lib/trainer";
 import { Dumbbell, Save, Loader2, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 
-export default function WorkoutsPage() {
+function WorkoutsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [routines, setRoutines] = useState<FitnessRoutine[]>([]);
@@ -125,5 +125,13 @@ export default function WorkoutsPage() {
         {isSaving ? <Loader2 className="animate-spin" /> : saveSuccess ? <CheckCircle2 /> : <Save />} {saveSuccess ? `Saved · ${score}/100` : "Save workout"}
       </button>
     </div>
+  );
+}
+
+export default function WorkoutsPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center text-neutral-400">Loading your workout…</div>}>
+      <WorkoutsContent />
+    </Suspense>
   );
 }
