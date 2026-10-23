@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Activity, Flame, Dumbbell, Footprints } from "lucide-react";
+import { Activity, Flame, Dumbbell, Footprints, Sparkles } from "lucide-react";
+import WeightChart from "@/components/WeightChart";
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -18,11 +19,7 @@ export default function DashboardPage() {
   const [metricsId, setMetricsId] = useState<string | null>(null);
   const [savingSteps, setSavingSteps] = useState(false);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
@@ -84,7 +81,9 @@ export default function DashboardPage() {
     }
 
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => { void Promise.resolve().then(fetchDashboardData); }, [fetchDashboardData]);
 
   // Step Tracker Save Function
   const handleSaveSteps = async () => {
@@ -139,7 +138,7 @@ const innerOffset = innerCircum - (ghostPercentage / 100) * innerCircum;
     <div className="p-6 md:p-12 max-w-6xl mx-auto min-h-screen text-neutral-100 pb-24">
       <header className="mb-10">
         <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-          Welcome back homie, <span className="text-blue-500 capitalize">{userName}</span>
+          Welcome back, <span className="text-blue-500 capitalize">{userName}</span>
         </h1>
         <p className="text-neutral-400">Here is your daily overview. Stay on track.</p>
       </header>
@@ -150,6 +149,7 @@ const innerOffset = innerCircum - (ghostPercentage / 100) * innerCircum;
           <div className="p-3 bg-orange-500/10 text-orange-500 rounded-xl hidden sm:block"><Footprints size={24} /></div>
           <div className="w-full">
             <h3 className="font-bold text-white text-sm">Daily Steps</h3>
+            <p className="text-[10px] text-neutral-500">{savingSteps ? "Saving…" : "Updates when you leave this field"}</p>
             <input 
                 type="number" 
                 value={steps}
@@ -248,9 +248,19 @@ const innerOffset = innerCircum - (ghostPercentage / 100) * innerCircum;
           </div>
         </div>
       </div>
+
+      <div className="mb-8">
+        <WeightChart />
+      </div>
       
       {/* QUICK ACTIONS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 shadow-sm hover:border-blue-500/50 transition-colors cursor-pointer" onClick={() => window.location.href='/trainer'}>
+          <div className="flex items-center gap-4 mb-2">
+            <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl"><Sparkles size={24} /></div>
+            <div><h3 className="font-bold text-white">AI Fitness Coach</h3><p className="text-sm text-neutral-400">Get a routine suggestion and track your session score</p></div>
+          </div>
+        </div>
         <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 shadow-sm hover:border-blue-500/50 transition-colors cursor-pointer" onClick={() => window.location.href='/workouts'}>
           <div className="flex items-center gap-4 mb-2">
             <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl"><Dumbbell size={24} /></div>
